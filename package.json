@@ -1,0 +1,42 @@
+{
+  "name": "vrack-db",
+  "version": "2.1.0",
+  "description": "Simple in memory Round Robin Database",
+  "main": "lib/index.js",
+  "homepage": "https://github.com/ponikrf/VRackDB",
+  "scripts": {
+    "test": "node ./lib/test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.17",
+    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/parser": "^5.45.0",
+    "eslint": "^8.29.0",
+    "typescript": "^4.9.3"
+  },
+  "keywords": [
+		"round",
+		"robin",
+		"roundrobin",
+		"metric",
+		"timeseries",
+		"graphite",
+		"whisper",
+		"imemory",
+    "vrack",
+    "database",
+    "graph"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ponikrf/VRackDB.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ponikrf/VRackDB/issues"
+  },
+  "author": "Boris Bobylev",
+  "license": "Apache2",
+  "dependencies": {
+    "buffer": "^6.0.3"
+  }
+}
