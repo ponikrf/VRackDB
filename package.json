@@ -1,6 +1,6 @@
 {
   "name": "vrack-db",
-  "version": "2.1.0",
+  "version": "2.2.1",
   "description": "Simple in memory Round Robin Database",
   "main": "lib/index.js",
   "homepage": "https://github.com/ponikrf/VRackDB",

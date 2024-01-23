@@ -44,17 +44,12 @@ Additional information
 
 Even if I haven't made changes to the project for a long time, it doesn't mean that the project is dead. You can write to ponik_rf@mail.ru, I will try to respond as soon as possible.
 
-Latest update 2.1.0
+Latest update 2.2.1
 --------------------------
-This update adds a simple tool for tracking data in the database and generating alarm messages.
 
- * Added `Alerting` class - for tracking data and generating alarm messages
- * Added `AlertQuery` class - for defining query settings
- * Added `BasicCondition` class - for defining the rule of alarm messages generation.
- * Added abstract `AlertCondtition` 
- * Added `isAggregateFunc` method to `MetricResult` class.
- * `Interval` class - removed unnecessary `console.log` class
- * Added alias for `Database` class
+ * **Interval.parseInterval** - You can now use a string with a number as an argument.
+ * **Interval.period** - You can now use a numeric representation for the start or end of a period.
+
 
 Installation
 ---------

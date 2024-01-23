@@ -185,7 +185,13 @@ export default class Interval {
     */
     static parseInterval(ival: string): number {
         const match = ival.match(/^(\d+)(\w+)$/);
-        if (!match || !Interval.#map[match[2]]) throw ErrorManager.make('VDB_INTREVAL_PARSE', { interval: ival })
+        if (!match || !Interval.#map[match[2]]) {
+            const r = parseInt(ival)
+            if (isNaN(r)){
+                throw ErrorManager.make('VDB_INTREVAL_PARSE', { interval: ival })
+            } 
+            return r
+        }
         return parseInt(match[1]) * Interval.#map[match[2]];
     }
 
