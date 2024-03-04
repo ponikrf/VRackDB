@@ -221,6 +221,7 @@ export default class Layer {
         const ils: Array<number> = Interval.getIntervals(start, end, precision)
         let to: number;
         for (let i = 0; i < ils.length; i++) {
+            if (this.startTime > ils[i]) continue
             if (precision <= this.interval) { to = ils[i]; }
             else { to = (ils[i] + precision) - this.interval; if (to < ils[i]) to = ils[i] }
             const tres = this.readInterval(ils[i], to) // Count the interval with data

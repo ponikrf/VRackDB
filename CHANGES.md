@@ -1,6 +1,11 @@
 Changes
 =======
 
+update 2.2.2
+------------
+ * Fixes an issue where a non-existent value that was calculated by rounding was being captured. 
+
+
 update 2.1.0
 --------------------------
 This update adds a simple tool for tracking data in the database and generating alarm messages.

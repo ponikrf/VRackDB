@@ -44,11 +44,10 @@ Additional information
 
 Even if I haven't made changes to the project for a long time, it doesn't mean that the project is dead. You can write to ponik_rf@mail.ru, I will try to respond as soon as possible.
 
-Latest update 2.2.1
---------------------------
+Latest update 2.2.2
+------------
 
- * **Interval.parseInterval** - You can now use a string with a number as an argument.
- * **Interval.period** - You can now use a numeric representation for the start or end of a period.
+ * Fixes an issue where a non-existent value that was calculated by rounding was being captured. 
 
 
 Installation
