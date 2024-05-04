@@ -12,6 +12,14 @@ export interface ILayerSettings {
     tStorage: StorageTypes | null;
 }
 /**
+ * Specific params for each metric
+*/
+export interface ICollectorMetricAdditional {
+    firstTime: number;
+    writeCount: number;
+    size: number;
+}
+/**
  * Metrics layer storage object
 */
 export interface IMetricCollector {
@@ -119,4 +127,22 @@ export default class Collector {
      * @param {string} precision The accuracy with which the response should be generated
     */
     read(name: string, start: number, end: number, precision: number, func?: string): IMetricReadResult;
+    /**
+     * Returns the estimated start of the metric graph
+     *
+     * @param {string} name The name of the metric
+    */
+    start(name: string): number;
+    /**
+     * Returns the estimated end of the metric graph
+     *
+     * @param {string} name The name of the metric
+    */
+    end(name: string): number;
+    /**
+     * Returns the number of writes in the metric
+     *
+     * @param {string} name The name of the metric
+    */
+    writeCount(name: string): number;
 }

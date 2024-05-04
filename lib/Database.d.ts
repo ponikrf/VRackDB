@@ -105,9 +105,18 @@ export default class Database {
      * @param {string} name Metric name
      * @param {number} start Start of period (in seconds)
      * @param {number} end End of period (in seconds)
-     * @param {string | number} precision Precision (interval like 2s, 5m, etc.)
+     * @param {string | number} precision Accuracy interval '15m', '5s', '1h' or count of metrics 10, 200, 1500
+     * @param {string} func Data aggregation function @see MetricResult.aggregate
     */
     readCustomRange(name: string, start: number, end: number, precision: string | number, func?: string): IMetricReadResult;
+    /**
+     * Reads all data, from the beginning of the data record to the last record
+     *
+     * @param {string} name Metric name
+     * @param {string | number} precision Accuracy interval '15m', '5s', '1h' or count of metrics 10, 200, 1500
+     * @param {string} func Data aggregation function @see MetricResult.aggregate
+    */
+    readAll(name: string, precision: string | number, func?: string): IMetricReadResult;
     /**
      * Write metric data
      *

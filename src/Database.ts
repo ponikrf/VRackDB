@@ -91,12 +91,12 @@ export default class Database {
      * @param {StorageTypes | null} tStorage Type of time storage
     */
     scheme(name: string, pattern: string, retentions: string, vStorage: StorageTypes | null = null, tStorage: StorageTypes | null = null) {
-        if (!Typing.isName(name)) throw ErrorManager.make('VDB_DATABASE_SCHEME_NAME',{ name })
-        if (!Typing.isName(pattern)) throw ErrorManager.make('VDB_DATABASE_SCHEME_PATTERN',{ pattern })
+        if (!Typing.isName(name)) throw ErrorManager.make('VDB_DATABASE_SCHEME_NAME', { name })
+        if (!Typing.isName(pattern)) throw ErrorManager.make('VDB_DATABASE_SCHEME_PATTERN', { pattern })
         Interval.retentions(retentions) // Validation scheme create retentions
         LayerStorage.make(vStorage, StorageTypes.Bit, 8)
         LayerStorage.make(tStorage, StorageTypes.Bit, 8)
-        for (const o of this.#schemes) if (o.name === name) throw ErrorManager.make('VDB_DATABASE_SCHEME_DUBLICATE', {name})
+        for (const o of this.#schemes) if (o.name === name) throw ErrorManager.make('VDB_DATABASE_SCHEME_DUBLICATE', { name })
         const nScheme: IDatabaseScheme = {
             name,
             pattern,
@@ -180,13 +180,26 @@ export default class Database {
      * @param {string} name Metric name
      * @param {number} start Start of period (in seconds)
      * @param {number} end End of period (in seconds)
-     * @param {string | number} precision Precision (interval like 2s, 5m, etc.)
+     * @param {string | number} precision Accuracy interval '15m', '5s', '1h' or count of metrics 10, 200, 1500
+     * @param {string} func Data aggregation function @see MetricResult.aggregate
     */
     readCustomRange(name: string, start: number, end: number, precision: string | number, func = 'last'): IMetricReadResult {
         if (typeof precision === 'number') precision = Interval.getIntervalOfFixedCount(start, end, precision)
         else precision = Interval.parseInterval(precision)
         if (this.Collector.has(name)) return this.Collector.read(name, start, end, precision, func)
         return this.#readFake(start, end, precision)
+    }
+
+    /**
+     * Reads all data, from the beginning of the data record to the last record
+     * 
+     * @param {string} name Metric name
+     * @param {string | number} precision Accuracy interval '15m', '5s', '1h' or count of metrics 10, 200, 1500
+     * @param {string} func Data aggregation function @see MetricResult.aggregate
+    */
+    readAll(name: string, precision: string | number, func = 'last'): IMetricReadResult {
+        if (!this.Collector.has(name)) return this.#readFake(Interval.now(), Interval.now(), 1)
+        return this.readCustomRange(name, this.Collector.start(name), this.Collector.end(name), precision, func)
     }
 
     /**
@@ -249,7 +262,7 @@ export default class Database {
      * 
      * @param name Scheme name
     */
-    schemeMetrics(name: string): Array<string>{
+    schemeMetrics(name: string): Array<string> {
         for (const o of this.#schemes) if (o.name === name) return o.metrics.slice()
         throw ErrorManager.make('VDB_DATABASE_NOT_FOUND', { name })
     }
@@ -259,10 +272,10 @@ export default class Database {
      * 
      * @param name Scheme name
     */
-    schemeHas(name: string): boolean{
+    schemeHas(name: string): boolean {
         for (const o of this.#schemes) if (o.name === name) return true
         return false
-    }    
+    }
 
     /**
      * Returns a list of available scheme names
@@ -271,7 +284,7 @@ export default class Database {
     */
     schemeList(): Array<string> {
         const r: Array<string> = ['default']
-        for (const o of this.#schemes) r.push(o.name); 
+        for (const o of this.#schemes) r.push(o.name);
         return r
     }
 
@@ -283,10 +296,9 @@ export default class Database {
     */
     schemeSize(name: string): number {
         if (name === 'default') return this.#defaultScheme.size
-        for (const o of this.#schemes) if (o.name === name) return o.size 
+        for (const o of this.#schemes) if (o.name === name) return o.size
         throw ErrorManager.make('VDB_DATABASE_NOT_FOUND', { name })
     }
-
 
     /**
      * Method of metrics search by template
@@ -324,7 +336,7 @@ export default class Database {
     #readFake(start: number, end: number, precision: number): IMetricReadResult {
         const iVls = Interval.getIntervals(start, end, precision)
         const result: IMetricReadResult = { relevant: false, start, end, rows: [] }
-        for (const iv of iVls) result.rows.push({ value: null, time: iv })
+        for (const iv of iVls) result.rows.push({ time: iv, value: null })
         return result
     }
 

@@ -337,66 +337,141 @@ The following types are supported:
 
 ### Working with layer time
 
-If you are using a database to cache data, you may run into the problem of getting data with a relative period. Let's say you took old data and wrote it to the database. How do you know the beginning and end of the graph?
+If you are using a database to cache data, you may run into the problem of getting data in a relative period. Let's say you took old data and wrote it to the database. How do you know the beginning and end of the graph?
 
-It is actually better to calculate the beginning and end of the graph before writing to the database, or while writing. The peculiarity of the layer is that it has no idea where the beginning and end of the graph is. Although if the data in the chart is sequential, the layer knows where the end of the chart is.
-
-So what should we do about the beginning of the graph?
-
-In any case, we need to save the first time index.
+Since version 2.3.0 it is now possible to get the estimated start and end of the chart:
 
 ```ts
-let start = firstValue.time
-DB.write('test.metric',firstValue.value, firstValue.time)
+if ( DB.Collector.has(test.metric)){
+    const startedAt = DB.Collector.start('test.metric')
+    const endedAt = DB.Collector.end('test.metric')
+}
 ``` 
 
-Now if you specify `start` as the start of time when querying from the database, you may get part of the chart start empty. This can happen because the data does not fit even in the largest layer of the chart. 
-
-To fix this problem, you can check the beginning of the chart.
+Also, a special method has been added to get the entire graph:
 
 ```ts
-const layers = DB.Collector.layers('test.metric')
-const fLayer = layers[0].layer // first layer
-const lLayer = layers[layers.length - 1].layer // last layer
-if (start < fLayer.startTime) start = fLayer.startTime
-DB.readCustomRange('test.metric', start, lLayer.endTime, 600)
+// metric.id & points count
+const result = DB.readAll('test.metric', 300)
 ``` 
 
-Now `start` is always the beginning of the graph, beyond which there is no point in looking. The end of the graph is determined by the end of the most accurate layer.
+With this method you can easily build an "infinite" graph. 
 
-Let's consider another example - an "infinite" chart.
-
-In some situations it may be necessary to build an "infinite" chart. Such a chart collects for example 600 points, after which only modification of data inside the chart takes place. Data set into such a chart as if constantly compresses it, and the chart does not shift in time.
+In some situations it may be necessary to build an "infinite" graph. Such a graph collects for example 600 points, after which only modification of data inside the graph takes place. The data set in such a graph as if constantly compresses it, and the graph does not shift in time.
 
 High accuracy is important only for the first set of values, then you can use a layer with lower accuracy. For example, we get data every second, let's add a layer `1s:10m`, it will occupy about 8KB of memory and hold our 600 points. Next, we need to add a layer that would take the brunt of the storage over time. While we have added a layer to store only 10 minutes, let's add a layer for 3 hours with the same number of points `18s:3h`. Then we can add less and less precise layers, for example `2m:1d`, `1h:1mon`.
 
+
 Of course, the graph will not be infinite and still in a month it will start to shift, but usually such amount of time is not required to collect time data of an infinite graph.
 
-Now let's deal with the request for obtaining an infinite graph. First, we need to save the time of the very first metric.
+Alerting
+-------------------
+
+Since version 2.1.0, the `Alerting` tool is now available for tracking and creating alarm messages. 
+
+To use this tool you need an already initialized `Database` class. 
+
+Initialization:
 
 ```ts
-const start = Interval.now()
-DB.write('test.metric',2.24, start)
-// ...
+const AT = new Alerting(DB)
 ```
 
-Then we can already query the data with a static value of the number of points.
+The `Alerting` class itself requests data from the database using the settings defined in the `AlertQuery` class. 
+
+Example of creating a query customization class that will query the average value every 5 seconds for the last 15 seconds:
 
 ```ts
-const end = Interval.now()
-DB.readCustomRange('test.metric', start, end, 600)
+const aQuery = new AlertQuery('5s', '1s', 'now-15s:now', 'avg')
 ```
 
-This solution will work as long as the difference between start and end does not exceed the length of the largest possible layer (in this case, a month). Of course, the probability that this will happen is very small, but it is there and if nothing is done, the chart will start to shrink with "empty" values from the beginning to the center.
+ - **evaluateInterval** _5s_ - Interval at which the data will be requested
+ - **interval** _1s_ - Request Interval
+ - **period** _now-15s:now_ - Relative period of the request
+ - **func** _avg_ - Query aggregation function
 
-To get rid of this problem, we can take the first layer (it will be the longest) and each time check the start with the start time of this layer.
+The `BasicCondition` class is used to define conditions:
 
 ```ts
-const layers = DB.Collector.layers('test.metric')
-const fLayer = layers[0].layer
-// ...
-// Each time before receiving the data
-if (start < fLayer.startTime) start = fLayer.startTime
-``` 
+// level, condition type, params
+const aConfig = new BasicCondition('danger',"outRange",[-5,5])
+```
 
-The solution for both problems is similar and practically show how one can use the layers' time to solve their problems.
+ - **level** _danger_ - Text representation of the danger level (user defined, will be reflected in the message). This field can be left blank to save memory.
+ - **type** _outRange_ - Type of status check
+ - **params** _[-5,5]_ - Parameters for the status check.
+
+Available check types for `BasicCondition`:
+
+ - **isAbove** - Value above parameter
+ - **isBelow** - Value below the parameter
+ - **isEqual** - Value equal to the parameter,
+ - **outRange** - Out of parameter (requires 2 parameters),
+ - **inRange** - Entering the limits defined by the parameters (requires 2 parameters).
+ - **noValue** - If the query results in a `null` value (requires no parameters).
+ 
+Now that the parameters are defined, you can assign them to the desired metric:
+
+```ts
+// path, query, config, id, additional
+AT.watch('test.name.2',aQuery, aConfig, '', {})
+```
+
+ - **path** _test.name.2_ - Path to the metric
+ - **query** _aQuery_ - Instance of the `AlertQuery` query customization class
+ - **config** _aConfig_ - Instance of the `BasicCondition` state checker customization class
+ - **id** _''_ - Unique identifier. If you specify an empty string, it will be generated automatically.
+ - **additional** _{}_ - Additional data that will be passed if the rule is violated.
+
+--------
+
+You can assign the same rules and query settings to different metrics. **If you create new metrics for each tracking point, you may lose a lot more memory**.
+
+--------
+
+You need to subscribe to receive triggered condition messages:
+
+```ts
+AT.addListener((alert) => { console.log(alert) })
+```
+
+If you violate a rule, you will receive a message such as:
+
+
+```ts
+{
+  id: '24cf92b9066b5',
+  value: 7.50190642674764,
+  status: 'updated',
+  count: 36,
+  timestamp: 1702377145,
+  created: 1702377145,
+  condition: {
+    level: 'danger',
+    id: '6633a39c10328',
+    type: 'outRange',
+    params: [ -5, 5 ]
+  },
+  areas: [ [ null, -5 ], [ 5, null ] ],
+  threshholds: [ -5, 5 ],
+  additional: {}
+}
+```
+
+ * **id** - Tracking point identifier (specified in the `watch` function)
+ * **value** - Query result for the metric
+ * **status** - Message status
+     * **created** - When the message was first received
+     * **updated** - When the message is repeated more than once
+     * **ok** - Message when data has stopped violating conditions
+ * **count** - Number of violations
+ * **timestamp** - Time of update.
+ * **created** - Time of creation
+ * **condition** - Violated condition
+ * **areas** - Condition Zones
+ * **threshholds** - Threshold value
+ * **additional** - Additional Tracking Point Information
+
+Areas - Zones are always specified from smaller to larger. For example the zone from 3 to 5 `[3,5]`.
+
+Zones can start at minus infinity and end at infinity. In this case `null` will be specified instead of the value.

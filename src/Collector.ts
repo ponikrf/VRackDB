@@ -22,6 +22,17 @@ export interface ILayerSettings {
     tStorage: StorageTypes | null;
 }
 
+
+/**
+ * Specific params for each metric
+*/
+export interface ICollectorMetricAdditional{
+    firstTime: number;
+    writeCount: number;
+    size: number;
+}
+
+
 /**
  * Metrics layer storage object
 */
@@ -52,6 +63,8 @@ export default class Collector {
      * Contains layers of metrics
      */
     #mectrics: IMetricCollector = {}
+
+    #additional: { [index: string]: ICollectorMetricAdditional } = {} 
 
     /**
      * Initializes the metric store with `name` and the precision parameter `retentions`
@@ -98,6 +111,8 @@ export default class Collector {
             else if (a.layer.timeSize() < b.layer.timeSize()) return 1
             return 0
         })
+
+        this.#additional[name] = { writeCount: 0, firstTime: 0, size: this.#calcSize(name) }
     }
 
     /**
@@ -133,9 +148,7 @@ export default class Collector {
     */
     size(name: string): number {
         if (!this.#mectrics[name]) throw ErrorManager.make('VDB_COLLECTOR_NOT_FOUND', { name })
-        let res = 0
-        for (const lay of this.#mectrics[name]) res += lay.layer.size()
-        return res
+        return this.#additional[name].size
     }
 
     /**
@@ -175,7 +188,11 @@ export default class Collector {
     write(name: string, value: number, time = 0, func = 'last') {
         if (time === 0) time = Math.floor(Date.now() / 1000)
         if (!this.#mectrics[name]) throw ErrorManager.make('VDB_COLLECTOR_NOT_FOUND', { name })
+        if (this.#additional[name].firstTime === 0 || this.#additional[name].firstTime > time ){
+            this.#additional[name].firstTime = time
+        }
         for (const l of this.#mectrics[name]) l.layer.write(time, value, func)
+        this.#additional[name].writeCount++
     }
 
     /**
@@ -205,6 +222,38 @@ export default class Collector {
             for (const row of tres.rows) result.rows.push(row)
         }
         return result
+    }
+
+    /**
+     * Returns the estimated start of the metric graph 
+     * 
+     * @param {string} name The name of the metric 
+    */
+    start(name: string) {
+        if (!this.#mectrics[name]) throw ErrorManager.make('VDB_COLLECTOR_NOT_FOUND', { name })
+        const lays = this.layers(name)
+        if (this.#additional[name].firstTime < lays[0].layer.startTime) return lays[0].layer.startTime
+        return this.#additional[name].firstTime
+    }
+
+    /**
+     * Returns the estimated end of the metric graph
+     * 
+     * @param {string} name The name of the metric 
+    */
+    end(name: string){
+        if (!this.#mectrics[name]) throw ErrorManager.make('VDB_COLLECTOR_NOT_FOUND', { name })
+        const lays = this.layers(name)
+        return lays[lays.length-1].layer.endTime
+    }
+
+    /**
+     * Returns the number of writes in the metric
+     * 
+     * @param {string} name The name of the metric 
+    */
+    writeCount(name: string){
+        return this.#additional[name].writeCount
     }
 
     /**
@@ -290,5 +339,17 @@ export default class Collector {
             }
         }
         return { start, end, layer: null }
+    }
+
+    /**
+     * Calculates the size of the metric in bytes
+     * 
+     * @param {string} name  metric name
+    */
+    #calcSize(name: string): number {
+        if (!this.#mectrics[name]) throw ErrorManager.make('VDB_COLLECTOR_NOT_FOUND', { name })
+        let res = 0
+        for (const lay of this.#mectrics[name]) res += lay.layer.size()
+        return res
     }
 }

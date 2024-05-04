@@ -44,10 +44,15 @@ Additional information
 
 Even if I haven't made changes to the project for a long time, it doesn't mean that the project is dead. You can write to ponik_rf@mail.ru, I will try to respond as soon as possible.
 
-Latest update 2.2.2
+update 2.3.0
 ------------
 
- * Fixes an issue where a non-existent value that was calculated by rounding was being captured. 
+ * Added method `Collector.writeCount(metricId)` which returns the number of records in the metric
+ * Added method `Collector.start(metricId)` which returns the expected start of the metric graph
+ * Added method `Collector.end(metricId)` which returns the expected end of the metric graph
+ * Now the size for each metric is calculated in advance, and `Collector` returns a ready-made value. This greatly speeds up the calculation of the occupied space of metrics in the scheme
+ * Added method `Database.readAll(metricId, precision, func)` Which returns data from the beginning of the metric record to the last record
+
 
 
 Installation
