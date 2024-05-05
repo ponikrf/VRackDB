@@ -199,7 +199,10 @@ export default class Database {
     */
     readAll(name: string, precision: string | number, func = 'last'): IMetricReadResult {
         if (!this.Collector.has(name)) return this.#readFake(Interval.now(), Interval.now(), 1)
-        return this.readCustomRange(name, this.Collector.start(name), this.Collector.end(name), precision, func)
+        const start = this.Collector.start(name)
+        const end =  this.Collector.end(name)
+        if (start === 0 || start > end) return this.#readFake(start, start, 1)
+        return this.readCustomRange(name, start, end, precision, func)
     }
 
     /**
