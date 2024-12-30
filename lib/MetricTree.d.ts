@@ -13,6 +13,12 @@ export default class MetricTree {
     */
     destroy(name: string): void;
     /**
+     * Updating the tree when creating a metric
+     *
+     * @param {string} name Metric name
+    */
+    update(name: string): void;
+    /**
      * Searches for metrics in the tree and returns an array of `ITreeResultElement`
      *
      * For searching, you can use the `*` symbol to get all metrics in the list, note `test.list.*`.
@@ -32,10 +38,4 @@ export default class MetricTree {
      * @param {string} pattern A search string of type `path.to.metric.*`.
     */
     find(pattern: string): ITreeResultElement[];
-    /**
-     * Updating the tree when creating a metric
-     *
-     * @param {string} name Metric name
-    */
-    update(name: string): void;
 }

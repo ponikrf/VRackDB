@@ -17,7 +17,7 @@ import Typing from "./Typing";
  * no value can be obtained for a given time
 */
 export interface IMetric {
-    /** Time in seconds */
+    /** Time in MTU */
     time: number,
     value: number | null
 }
@@ -36,6 +36,38 @@ export interface IMetricReadResult {
     rows: Array<IMetric>
 }
 
+
+export interface ILayerOptions {
+    /**
+     * Defines the accuracy with which the data will be stored,
+     * for example 10 - 10 MTU. After specifying 10 MTU, this layer will not be able to store data for more than 10 MTU.
+     * */
+    interval: number,
+
+    /**
+     * Determines the total data storage period, 
+     * 100 - 100 MTU , i.e. this layer will not be able to store data for more than 100 MTU.
+    */
+    period: number,
+
+    /**
+     * Value storage type
+     * @see StorageTypes
+    */
+    vStorage?: StorageTypes | null,
+
+    /**
+     * Time storage type
+     * @see StorageTypes
+    */
+    tStorage?: StorageTypes | null,
+
+    /**
+     * Class interval - Determines the MTU for a new layer.
+    */
+    CInterval?: typeof Interval
+}
+
 ErrorManager.register('Aht5U892ICXv', 'VDB_LAYER_SIZE', 'Incorrect size of layer (interval > period)')
 ErrorManager.register('iQT3d2SflYQY', 'VDB_LAYER_SECTION', 'Incorrect section - The beginning is greater than the end')
 ErrorManager.register('ir1hjNJ0GA0j', 'VDB_LAYER_INITIAL_DATA', 'Incorrect interval or period type, values must be integer and greater than zero')
@@ -43,80 +75,125 @@ ErrorManager.register('VWkc3gQ9g1DM', 'VDB_LAYER_VALUE', 'Incorrect type given, 
 ErrorManager.register('gVCGXR03XycW', 'VDB_LAYER_TIME', 'Incorrect type given, type integer is required')
 ErrorManager.register('5I1vWpnAH2zM', 'VDB_LAYER_PRECISION', 'Incorrect type given, values must be integer and greater than zero')
 
-
 /**
- * See the documentation for the layer
+ * A layer is a low level for storing information. 
+ * The layer works with such a concept as MTU - minimum time unit. MTU is a unit of time represented as an integer.
+ * For class Interval MTU = 1 second. For IntervalMs MTU = 1 millisecond. For class IntervalUs = microsecond
  * 
- * @see /docs/layer.md
+ * Example of creating a layer with 10 memory cells
+ * 
+ * ```ts
+ * const lay = new Layer({ interval: 1, period: 10}) 
+ * ```
+ * 
+ * For more details, it is recommended to read the official guide
+ * 
+ * @link https://github.com/ponikrf/VRackDB/wiki/How-It-Works
+ * 
 */
 export default class Layer {
-    /** Layer accuracy in seconds */
-    interval: number;
 
-    /** Period of layer */
-    period: number;
+    /** Layer accuracy in MTU */
+    protected _interval: number;
+
+    /** Period of layer in MTU */
+    protected _period: number;
 
     /** Number of intervals in a layer */
-    points: number
+    protected _cells: number
 
     /** Initial point of time in the layer */
-    startTime: number
+    protected _startTime: number
 
     /** End point of time in the layer */
-    endTime: number
+    protected _endTime: number
 
     /**  Value store */
-    #valueStorage: IStorage
+    protected _valueStorage: IStorage
 
     /** Time Vault */
-    #timeStorage: IStorage
+    protected _timeStorage: IStorage
 
+    /** Interval class (see Interval, IntervalMs, IntervalUs) */
+    CInterval: typeof Interval = Interval
 
     /**
      * Creating a new storage with a certain accuracy (interval) and size (period)
      * 
-     * **Layer accuracy cannot be greater than the total storage interval**
+     * **The interval cannot be less than the period**
      * 
-     * @example  new Layer(1, 10) // Creates a layer with an interval of 1 second and a period of 10 seconds
-     *  
-     * @param {number} interval Defines the accuracy with which the data will be stored,
-     * for example 10 - 10 seconds. After specifying 10 seconds, this layer will not be able to store data for more than 10 seconds.
+     * @example  new Layer({ interval: 1, period: 10}) // Creates a layer with an interval of 1 MTU and a period of 10 MTU
      * 
-     * @param {number} period Determines the total data storage period, 
-     * 100 - 100sec , i.e. this layer will not be able to store data for more than 100sec.
+     * @see ILayerOptions
+     * @link https://github.com/ponikrf/VRackDB/wiki/How-It-Works
     */
-    constructor(interval: number, period: number, vStorage: StorageTypes | null = null, tStorage: StorageTypes | null = null) {
-        if (interval >= period) throw ErrorManager.make('VDB_LAYER_SIZE', { interval, period })
-        if (!Typing.isUInt(interval) || !Typing.isUInt(period)) throw ErrorManager.make('VDB_LAYER_INITIAL_DATA', { interval, period })
-        this.interval = interval
-        this.period = period
-        this.points = Math.floor(period / this.interval)
-        this.#valueStorage = LayerStorage.make(vStorage, StorageTypes.Float, this.points)
-        this.#timeStorage = LayerStorage.make(tStorage, StorageTypes.Uint64, this.points)
-        const time = Interval.now()
-        this.startTime = Interval.roundTime(time - (this.interval * (this.points - 1)), this.interval)
-        this.endTime = Interval.roundTime(time, this.interval)
+    constructor({ interval, period, vStorage = null, tStorage = null, CInterval = Interval }: ILayerOptions) {
+        if (interval >= period) throw ErrorManager.make(new Error, 'VDB_LAYER_SIZE', { interval, period })
+        if (!Typing.isUInt(interval) || !Typing.isUInt(period)) throw ErrorManager.make(new Error, 'VDB_LAYER_INITIAL_DATA', { interval, period })
+        this._interval = interval
+        this._period = period
+        this.CInterval = CInterval
+
+        // get cells count in layer
+        this._cells = Math.floor(period / this._interval)
+        this._timeStorage = LayerStorage.make(tStorage, StorageTypes.Uint64, this._cells)
+        this._valueStorage = LayerStorage.make(vStorage, StorageTypes.Float, this._cells)
+        const time = this.CInterval.now()
+
+        // Fill basic data for new layer
+        this._startTime = this.CInterval.roundTime(time - (this._interval * (this._cells - 1)), this._interval)
+        this._endTime = this.CInterval.roundTime(time, this._interval)
     }
 
     /**
      * Clear layer data
     */
     clear() {
-        this.#timeStorage.buffer.fill(0)
+        this._timeStorage.buffer.fill(0)
     }
 
     /**
      * Returns the size of the layer in bytes
     */
-    size(): number {
-        return this.#valueStorage.buffer.length + this.#timeStorage.buffer.length
+    get length (){
+        return this._valueStorage.buffer.length + this._timeStorage.buffer.length
     }
 
     /** 
-     * Returns the total time of the layer in seconds
+     * Layer accuracy in MTU 
+     */
+    get interval() {
+        return this._interval
+    }
+
+    /** 
+    * Number of intervals in a layer 
+    * 
+    * Old method timeSize is deprecated & deleted
+    */
+    get period() {
+        return this._period
+    }
+
+    /** 
+    * Number of intervals in a layer 
+    */
+    get cells() {
+        return this._cells
+    }
+
+    /**
+     * Initial point of time in the layer
+    */
+    get startTime() {
+        return this._startTime
+    }
+
+    /** 
+     * End point of time in the layer 
      * */
-    timeSize(): number {
-        return this.period
+    get endTime() {
+        return this._endTime
     }
 
     /**
@@ -129,23 +206,23 @@ export default class Layer {
      * 
      * Works best when data is written sequentially (in time)
      * 
-     * @param {number} time Time in seconds
+     * @param {number} time Time in MTU
      * @param {number} value Value to be recorded
      * @param {string} func Modification function
     */
     write(time: number, value: number, func = 'last') {
 
-        if (typeof value !== 'number') throw ErrorManager.make('VDB_LAYER_VALUE', { value })
-        if (typeof time !== 'number') throw ErrorManager.make('VDB_LAYER_TIME', { time })
+        if (typeof value !== 'number') throw ErrorManager.make(new Error, 'VDB_LAYER_VALUE', { value })
+        if (typeof time !== 'number') throw ErrorManager.make(new Error, 'VDB_LAYER_TIME', { time })
 
-        const oTime = Interval.roundTime(time, this.interval)
+        const oTime = this.CInterval.roundTime(time, this._interval)
 
         /**
          * If we receive a value with a time that exceeds the length of our buffer
          * We consider that there is no more actual data in this buffer and we set
          * startTime equal to our endTime and get a buffer with 1 value
         */
-        if (this.endTime < (oTime - this.points * this.interval)) this.startTime = oTime
+        if (this._endTime < (oTime - this._cells * this._interval)) this._startTime = oTime
 
         /**
          * We've got a value less than the start of the layer
@@ -153,22 +230,22 @@ export default class Layer {
          * To be less than oTime
          * Then the following condition will do it for us
         */
-        if (oTime < this.startTime) {
-            this.endTime = oTime - this.interval
+        if (oTime < this._startTime) {
+            this._endTime = oTime - this._interval
         }
 
         /**
          * We've got a time value greater than the last time, so we need to move 
          * the end of our queue to the next index and replace endTime
         */
-        if (this.endTime < oTime) {
-            const sTime = Interval.roundTime(time - (this.interval * (this.points - 1)), this.interval)
-            this.startTime = sTime
-            this.endTime = oTime
+        if (this._endTime < oTime) {
+            const sTime = this.CInterval.roundTime(time - (this._interval * (this._cells - 1)), this._interval)
+            this._startTime = sTime
+            this._endTime = oTime
         }
 
-        const index = this.#getIndex(time)
-        this.#writeBuffer(index, oTime, value, func)
+        const index = this.getIndex(time)
+        this.writeBuffer(index, oTime, value, func)
     }
 
     /**
@@ -188,12 +265,12 @@ export default class Layer {
      * @param {number} end End time
     */
     readInterval(start: number, end: number) {
-        if (start < this.startTime) start = this.startTime
-        if (end > this.endTime) end = this.endTime
-        if (start > end) end = this.endTime
-        const ils = Interval.getIntervals(start, end, this.interval)
+        if (start < this._startTime) start = this._startTime
+        if (end > this._endTime) end = this._endTime
+        if (start > end) end = this._endTime
+        const ils = this.CInterval.getIntervals(start, end, this._interval)
         const result: IMetricReadResult = { relevant: true, start, end, rows: [] }
-        for (let i = 0; i < ils.length; i++) result.rows.push(this.#readOne(ils[i]))
+        for (let i = 0; i < ils.length; i++) result.rows.push(this.readOne(ils[i]))
         return result
     }
 
@@ -212,18 +289,18 @@ export default class Layer {
      * @param {number} precision 
     */
     readCustomInterval(start: number, end: number, precision: number, func = 'last'): IMetricReadResult {
-        if (!Typing.isUInt(precision)) throw ErrorManager.make('VDB_LAYER_PRECISION', { precision })
-        if (start < this.startTime) start = this.startTime
-        if (end > this.endTime) end = this.endTime
-        if (!precision) precision = this.interval
-        if (start > end) throw ErrorManager.make('VDB_LAYER_SECTION', { start, end })
+        if (!Typing.isUInt(precision)) throw ErrorManager.make(new Error, 'VDB_LAYER_PRECISION', { precision })
+        if (start < this._startTime) start = this._startTime
+        if (end > this._endTime) end = this._endTime
+        if (!precision) precision = this._interval
+        if (start > end) throw ErrorManager.make(new Error, 'VDB_LAYER_SECTION', { start, end })
         const result: IMetricReadResult = { relevant: true, start, end, rows: [] }
-        const ils: Array<number> = Interval.getIntervals(start, end, precision)
+        const ils: Array<number> = this.CInterval.getIntervals(start, end, precision)
         let to: number;
         for (let i = 0; i < ils.length; i++) {
-            if (this.startTime > ils[i]) continue
-            if (precision <= this.interval) { to = ils[i]; }
-            else { to = (ils[i] + precision) - this.interval; if (to < ils[i]) to = ils[i] }
+            if (this._startTime > ils[i]) continue
+            if (precision <= this._interval) { to = ils[i]; }
+            else { to = (ils[i] + precision) - this._interval; if (to < ils[i]) to = ils[i] }
             const tres = this.readInterval(ils[i], to) // Count the interval with data
             const val: IMetric = {
                 time: ils[i],
@@ -236,12 +313,13 @@ export default class Layer {
 
     /**
      * Return all points in layer
+     * See example!
      * 
      * @example console.table(layer.dump())
     */
     dump() {
         const rows: Array<IMetric> = []
-        for (let i = 0; i < this.points; i++) rows.push(this.#readBuffer(i))
+        for (let i = 0; i < this._cells; i++) rows.push(this.readBuffer(i))
         return rows
     }
 
@@ -250,8 +328,8 @@ export default class Layer {
      * 
      * @param {number} time time
     */
-    #readOne(time: number): IMetric {
-        const metric = this.#readBuffer(this.#getIndex(time))
+    protected readOne(time: number): IMetric {
+        const metric = this.readBuffer(this.getIndex(time))
         metric.time = time
         return metric
     }
@@ -259,10 +337,10 @@ export default class Layer {
     /**
      * Returns the time index
      * 
-     * @param {number} time time in seconds
+     * @param {number} time time in MTU
     */
-    #getIndex(time: number) {
-        return Math.floor(this.points + time / this.interval) % this.points;
+    protected getIndex(time: number) {
+        return Math.floor(this._cells + time / this._interval) % this._cells;
     }
 
     /**
@@ -270,10 +348,10 @@ export default class Layer {
      * of the layer, in fact it checks if the time is within the interval 
      * of the layer's current active time
      * 
-     * @param {number} time Time in seconds
+     * @param {number} time Time in MTU
     */
-    #validTime(time: number) {
-        return (time >= this.startTime && time <= this.endTime)
+    protected validTime(time: number) {
+        return (time >= this._startTime && time <= this._endTime)
     }
 
     /**
@@ -282,10 +360,10 @@ export default class Layer {
      * @param {number} index Metrics Index
      * @returns {IMetric} Metric value
     */
-    #readBuffer(index: number): IMetric {
-        const time = this.#timeStorage.readBuffer(index)
-        let value: number | null = this.#valueStorage.readBuffer(index)
-        if (!this.#validTime(time)) value = null
+    protected readBuffer(index: number): IMetric {
+        const time = this._timeStorage.readBuffer(index)
+        let value: number | null = this._valueStorage.readBuffer(index)
+        if (!this.validTime(time)) value = null
         return { time, value }
     }
 
@@ -297,10 +375,10 @@ export default class Layer {
      * @param {number} value Value for recording
      * @param {string} func Modification function
     */
-    #writeBuffer(index: number, time: number, value: number, func = 'last') {
-        value = this.#modifyWrite(index, value, func)
-        this.#timeStorage.writeBuffer(index, time)
-        this.#valueStorage.writeBuffer(index, value)
+    protected writeBuffer(index: number, time: number, value: number, func = 'last') {
+        value = this.modifyWrite(index, value, func)
+        this._timeStorage.writeBuffer(index, time)
+        this._valueStorage.writeBuffer(index, value)
     }
 
     /**
@@ -310,8 +388,8 @@ export default class Layer {
      * @param {number} value Value for recording
      * @param {string} func Modification function
     */
-    #modifyWrite(index: number, value: number, func: string) {
-        const val = this.#readBuffer(index)
+    protected modifyWrite(index: number, value: number, func: string) {
+        const val = this.readBuffer(index)
         if (val.value === null) return value
         return MetricWrite.modify(val.value, value, func)
     }

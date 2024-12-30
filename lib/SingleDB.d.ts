@@ -1,44 +1,41 @@
-import Collector from "./Collector";
+import Collector, { ICollectorOptions } from "./Collector";
+import Interval from "./Interval";
 import { IMetricReadResult } from "./Layer";
-import { StorageTypes } from "./LayerStorage/LayerStorage";
-import MetricTree from "./MetricTree";
-interface IInputConfig {
-    metricTree?: boolean;
-}
-export default class Database {
-    #private;
-    Collector: Collector;
-    MetricTree: MetricTree;
-    constructor(conf?: IInputConfig);
+/**
+ * Top-level class for managing metrics
+ * Each metric in this class can have different settings than other metrics.
+*/
+export default class SingleDB {
+    protected Collector: Collector;
+    protected defaultMetric: {
+        retentions: string;
+        tStorage: null;
+        vStorage: null;
+        CInterval: typeof Interval;
+    };
     /**
-     * Adding a new scheme
+     * Add new metric with custom params
      *
-     * Example:
+     * @example
+     *
+     * Create metric with default options
+     * use naming params (param `name` require)
      * ```ts
-     * // Creates a schema with the name `test` and the pattern 'test.name'
-     * // Then the parameters are specified in the line separated by commas
-     * // accuracy and storage time of metrics for a given scheme
-     * // (with an accuracy of 5 seconds storage period of 10 minutes)
-     * // (with an accuracy of 1 minute storage period of 2 hours)
-     * DB.scheme('test', 'test.name', '5s:10m, 1m:2h')
+     * SingleTreeObject.metric({ name: 'metric.uid' })
      * ```
      *
-     * Schemes are needed to assign different storage layer sizes to a single metric.
-     * The combination of the different layers determines how accurately
-     * and how long the data of a given metric will be stored.
+     * Create metric with custom params
      *
-     * Schemas are assigned via a pattern if the metric fits the pattern of the schema,
-     * it will be assigned to the layers specified in the pattern.
-     *
-     * Read More: @see /docs/Database
-     *
-     * @param {string} name Schema name, allocates metrics to a named group
-     * @param {string} pattern Pattern scheme for metrics
-     * @param {string} retentions Specifying the accuracy and size of the metric retention period.
-     * @param {StorageTypes | null} vStorage Type of value storage
-     * @param {StorageTypes | null} tStorage Type of time storage
+     * ```ts
+     * SingleTreeObject.metric({
+     *      name: 'metric.uid',
+     *      retentions:  '5s:10m, 1m:2h, 15m:1d, 1h:1w, 6h:1mon, 1d:1y',
+     *      tStorage: StorageTypes.Uint64
+     * })
+     * ```
+     * @see ICollectorOptions
     */
-    scheme(name: string, pattern: string, retentions: string, vStorage?: StorageTypes | null, tStorage?: StorageTypes | null): void;
+    metric({ name, retentions, tStorage, vStorage, CInterval }: ICollectorOptions): void;
     /**
      * Reading metrics from the database. Uses a pass through all layers to get more complete and detailed information
      *
@@ -59,6 +56,8 @@ export default class Database {
      *
      * All types of intervals:
      *
+     * - us - microseconds
+     * - ms - milliseconds
      * - s - seconds
      * - m - minutes
      * - h - hours
@@ -138,62 +137,61 @@ export default class Database {
      *
      * @param {string} name Metric name
      * @param {number} value Metric value
-     * @param {number} time Optional metric time parameter
+     * @param {number} time Time in MTU
      * @param {string} func Modification function
     */
     write(name: string, value: number, time?: number, func?: string): void;
     /**
-     * Deletes the schema with all its metrics
+     * Deletes the metric with all data
      *
      * @param {string} name Scheme name
     */
-    schemeDestroy(name: string): void;
+    destroy(name: string): void;
     /**
-     * Return metric list of scheme
-     *
-     * @param name Scheme name
-    */
-    schemeMetrics(name: string): Array<string>;
-    /**
-     * Checks the existence of a schema
-     *
-     * @param name Scheme name
-    */
-    schemeHas(name: string): boolean;
-    /**
-     * Returns a list of available scheme names
-     *
-     * @returns {Array<string>} List of circuit names
-    */
-    schemeList(): Array<string>;
-    /**
-     * Returns the size of the schema. If the scheme was not found, returns null
+     * Returns the size of the metric
      *
      * @param {string} name Scheme name
      * @returns {number} Size in bytes or null if no schema found
     */
-    schemeSize(name: string): number;
+    size(name: string): number;
     /**
-     * Method of metrics search by template
+     * Checks if the metric exists in the collection
      *
-     * For searching, you can use the `*` symbol to retrieve all metrics in the list
-     * note `test.list.*`.
-     *
-     * **It is not recommended to use the `*` character not at the end of a query string**
-     *
-     * Example:
-     *
-     * ```ts
-     * [{
-     *      leaf: true, // Whether the path is a destination path (false if the path is a list)
-     *      name: 'name', // Act name
-     *      path: 'test.name', // Full path
-     * }]
-     * ```
-     *
-     * @see MetricTree.find()
-     * @param {string} pattern A search string of type `path.to.metric.*`.
+     * @param {string} name Metric name
+     * @returns {boolean}
     */
-    find(pattern: string): import("./MetricTree").ITreeResultElement[];
+    has(name: string): boolean;
+    /**
+     * Returns the estimated start of the metric graph
+     *
+     * @param {string} name The name of the metric
+    */
+    start(name: string): number;
+    /**
+     * Returns the estimated end of the metric graph
+     *
+     * @param {string} name The name of the metric
+    */
+    end(name: string): number;
+    protected parsePrecission(start: number, end: number, precision: string | number, CInterval: typeof Interval): number;
+    /**
+     * Before write metric hook
+     * @see write
+    */
+    protected beforeWrite(name: string, value: number, time?: number, func?: string): void;
+    /**
+     * After write metric hook
+     * @see write
+    */
+    protected afterWrite(name: string, value: number, time?: number, func?: string): void;
+    /**
+     * Before destroy metric hook
+     * @see write
+    */
+    protected beforeDestroy(name: string): void;
+    /**
+     * After destroy metric hook
+     * @see write
+    */
+    protected afterDestroy(name: string): void;
 }
-export {};

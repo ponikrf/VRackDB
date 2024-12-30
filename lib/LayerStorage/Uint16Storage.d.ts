@@ -1,4 +1,5 @@
 /// <reference types="node" />
+/// <reference types="node" />
 import IStorage from "./IStorage";
 import { Buffer } from "buffer";
 export default class Uint16Storage implements IStorage {

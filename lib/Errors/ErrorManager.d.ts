@@ -23,13 +23,19 @@ declare class RegisteredErrorManager {
      *
      * @param {string} short
     */
-    make(short: string, additional?: {}): CoreError;
+    make(err: Error, short: string, additional?: {}): CoreError;
     /**
      * Преобразует обычную ошибку в ошибку VRack
      *
      * @param {Error} error Ошибка для преобразования
     */
     convert(error: any): any;
+    /**
+     * Test error message
+     *
+     * @param func function for test
+     * @param result Expected result short code
+    */
     test(func: () => boolean, result: string): boolean;
     /**
      * Возвращает тип ошибки или null

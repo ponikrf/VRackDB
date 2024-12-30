@@ -1,6 +1,6 @@
 {
   "name": "vrack-db",
-  "version": "2.3.1",
+  "version": "3.0.0",
   "description": "This is an In Memory database designed for storing time series (graphs).",
   "main": "lib/index.js",
   "homepage": "https://github.com/ponikrf/VRackDB",

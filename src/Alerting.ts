@@ -6,7 +6,7 @@
 import AlertCondition from "./AlertCondtition";
 import ICondition from "./ICondition";
 import AlertQuery from "./AlertQuery";
-import Database from "./Database";
+import SingleDB from "./SingleDB";
 import ErrorManager from "./Errors/ErrorManager";
 import Interval from "./Interval";
 import MetricResult from "./MetricResult";
@@ -53,13 +53,13 @@ ErrorManager.register('9gaaPv5DFoh5', 'VDB_ALERTING_DUBLICATE_UID', 'Dublicate k
  * Used with the AlertCondition and AlertQuery classes
 */
 export default class Alerting {
-    protected database: Database
+    protected database: SingleDB
     protected listeners: Array<(alert: IAlert) => void> = []
 
     /**
      * @param database VRack db database instance
      * */
-    constructor(database: Database) {
+    constructor(database: SingleDB) {
         this.database = database
     }
     
@@ -102,7 +102,7 @@ export default class Alerting {
     */
     watch(path: string, query: AlertQuery, condition: AlertCondition, id: string, additional: { [key: string]: any }) {
         if (id === "") id = Utility.uid()
-        if (this.points[id] !== undefined) throw ErrorManager.make('VDB_ALERTING_DUBLICATE_UID', { id })
+        if (this.points[id] !== undefined) throw ErrorManager.make(new Error, 'VDB_ALERTING_DUBLICATE_UID', { id })
         const fconf: IAlertingPoint = { status: 'ok',created: 0, path, query, condition, additional, id, count: 0 }
         this.points[id] = fconf
         this.initTimer(id)

@@ -1,9 +1,10 @@
-import ErrorManager from "./Errors/ErrorManager";
-
 /*
  * Copyright © 2023 Boris Bobylev. All rights reserved.
  * Licensed under the Apache License, Version 2.0
 */
+
+import ErrorManager from "./Errors/ErrorManager";
+
 ErrorManager.register('f0aInXAQsqNs', 'VDB_METRIC_MODIFY_TYPE', 'Unknown modify type')
 /**
  * Helper for writing data to the database
@@ -43,7 +44,7 @@ export default class MetricWrite {
             case 'sum':
                 return a + b
             default:
-                throw ErrorManager.make('VDB_METRIC_MODIFY_TYPE', { func })
+                throw ErrorManager.make(new Error, 'VDB_METRIC_MODIFY_TYPE', { func })
         }
     }
 }

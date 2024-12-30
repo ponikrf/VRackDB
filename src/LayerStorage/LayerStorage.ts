@@ -57,6 +57,6 @@ export default class LayerStorage {
             case StorageTypes.Uint32: return new Uint32Storage(points)
             case StorageTypes.Uint64: return new Uint64Storage(points)
         }
-        throw ErrorManager.make('VDB_LAYER_STORAGE_TYPE', { type })
+        throw ErrorManager.make(new Error, 'VDB_LAYER_STORAGE_TYPE', { type })
     }
 }

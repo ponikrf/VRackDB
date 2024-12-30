@@ -35,6 +35,24 @@ export default class MetricTree {
 
 
     /**
+     * Updating the tree when creating a metric
+     * 
+     * @param {string} name Metric name
+    */
+    update(name: string) {
+        const acts = name.split('.')
+        let oTree: IMetricTreeElement = this.#tree
+        for (let i = 1; i <= acts.length; i++) {
+            const act = acts[i - 1]
+            if (oTree[act] === undefined) {
+                const empty: IMetricTreeElement = {}
+                oTree[act] = empty
+            }
+            oTree = oTree[act]
+        }
+    }
+
+    /**
      * Searches for metrics in the tree and returns an array of `ITreeResultElement`
      * 
      * For searching, you can use the `*` symbol to get all metrics in the list, note `test.list.*`.
@@ -76,23 +94,7 @@ export default class MetricTree {
         return result
     }
 
-    /**
-     * Updating the tree when creating a metric
-     * 
-     * @param {string} name Metric name
-    */
-    update(name: string) {
-        const acts = name.split('.')
-        let oTree: IMetricTreeElement = this.#tree
-        for (let i = 1; i <= acts.length; i++) {
-            const act = acts[i - 1]
-            if (oTree[act] === undefined) {
-                const empty: IMetricTreeElement = {}
-                oTree[act] = empty
-            }
-            oTree = oTree[act]
-        }
-    }
+
 
     /**
      * Returns the Leaf flag for the element

@@ -1,6 +1,54 @@
 Changes
 =======
 
+update 3.0.0
+------------
+
+### SchemeDB
+
+ - Added SchemeDB class - Replaced the old `Database` class.
+ - Removed working with `MetricTree` (find method). Now you can use `MetricTree` without `SchemeDB`.
+ - The `scheme` method now uses named parameters 
+ - It is now possible to define the `CInterval` parameter in the `scheme` method, which controls the minimal time unit (note: seconds, milliseconds, microseconds).
+
+### SingleDB
+
+ - Added SingleDB class - The simplest class for working with metrics. Each metric in this class can have different settings from other metrics. This class is the parent of the `SchemeDB` class
+
+### Database 
+
+ - The class has been removed, now SchemeDB instead
+
+### Layer 
+
+ - General refactoring - converted to TypeScript style
+ - Changed the initialization of the class. Named parameters are now used
+ - Size method removed, and replaced with `Layer.length`.
+ - All internal settings like `interval`, `period`, etc. are now read-only via “getters”.
+
+### Collector
+
+ - General refactoring - moved to TypeScript style
+ - The init method now uses named parameters
+ - Internal documentation update
+ - `Collector` methods now use the `Interval` that was specified when the metric was created
+ - Optimization of metrics settings storage
+ - All class properties are now defined as protected
+ - Added readFake method to retrieve irrelevant metrics
+ - Added info method that returns additional information about the metric (size, first write, number of attempts to write to the metric).
+
+### Interval
+
+ - Updated internal documentation, comments now better answer the question about what methods do.
+ - Added new concept of MTU - minimum time unit. MTU is a unit of time represented as an integer. For example, for the Interval class MTU = 1 second. For IntervalMs MTU = 1 millisecond, etc.
+ - Internal interfaces are now exported for use inside other extensible classes like IntervalMs
+ - Added getFactor() method which returns a time multiplier to get the MTU from the JS standard time. (Normally, JS uses milliseconds as the time. Factor to get MTU in Interval will be 0.001)
+ - Added 2 more intervals to the standard interval set - ms and us - millisecond and microsecond respectively
+ - Now if the result of interval conversion returns a fractional number - it will be rounded up.
+ - Fixed a problem with the partOfPeriod method. Previously it could perform only one type of operation in one expression, e.g. calculate `1m+10m+1h` but if you needed to use both `+` and `-` it would cause an error.
+ - Added IntervalMs & IntervalUs classes to calculate Ms and Us as MTUs
+
+
 update 2.3.0
 ------------
  * Added method `Collector.writeCount(metricId)` which returns the number of records in the metric

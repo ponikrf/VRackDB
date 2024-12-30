@@ -1,7 +1,7 @@
 import AlertCondition from "./AlertCondtition";
 import ICondition from "./ICondition";
 import AlertQuery from "./AlertQuery";
-import Database from "./Database";
+import SingleDB from "./SingleDB";
 /**
  * Alert status list
 */
@@ -42,12 +42,12 @@ export interface IAlert {
  * Used with the AlertCondition and AlertQuery classes
 */
 export default class Alerting {
-    protected database: Database;
+    protected database: SingleDB;
     protected listeners: Array<(alert: IAlert) => void>;
     /**
      * @param database VRack db database instance
      * */
-    constructor(database: Database);
+    constructor(database: SingleDB);
     /**
      * Alerting points
      * Each point have a unique ID

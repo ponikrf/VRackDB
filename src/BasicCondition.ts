@@ -61,12 +61,12 @@ export default class BasicCondition extends AlertCondition {
     */
     constructor(level: string, type: keyof typeof EConditionType, params: Array<number>) {
         super()
-        if (EConditionType[type] === undefined) throw ErrorManager.make('VDB_BASIC_CONDITION_TYPE', { type })
-        if (params.length !== CTypeParamsCount[type]) throw ErrorManager.make('VDB_BASIC_CONDITION_PARAMS', { count: params.length })
+        if (EConditionType[type] === undefined) throw ErrorManager.make(new Error, 'VDB_BASIC_CONDITION_TYPE', { type })
+        if (params.length !== CTypeParamsCount[type]) throw ErrorManager.make(new Error, 'VDB_BASIC_CONDITION_PARAMS', { count: params.length })
 
         for (let i = 0; i < params.length; i++) {
             if (typeof params[i] !== "number") {
-                throw ErrorManager.make('VDB_BASIC_CONDITION_PARAMS', { count: params.length, index: i })
+                throw ErrorManager.make(new Error, 'VDB_BASIC_CONDITION_PARAMS', { count: params.length, index: i })
             }
         }
 

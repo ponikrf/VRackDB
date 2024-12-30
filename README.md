@@ -1,8 +1,5 @@
 
-VRack DB 
-========
-
-VRackDB - This is an **In Memory** database designed for storing time series (graphs). 
+VRackDB - This is an **embedded In Memory** database designed for storing time series (graphs). 
 
 Features: 
  - Has a simple query format
@@ -12,21 +9,22 @@ Features:
  - Aggregation and data modifiers
  - Stores data in memory. If you close the program, the data will be lost
  - Reserves metric memory, subsequent addition of metric data does not increase memory consumption
+ - Simple tool to track data and create alarm messages
 
-**Important** The project has moved. Github is more friendly for public open source projects.
+Here are some examples of VRackDB applications:
+ - Plotting a graph of a file download
+ - Analyze application memory consumption
+ - Diagnose latency of HTTP/API/WebScoket and other requests
+ - Quantitative analysis of successful/unsuccessful operations per time interval 
+ - SOC applications for computers and computer-based devices (multimeters, lab power supplies, etc.)
+ - Data caching for fast graph display/analysis
+ - Storage of time-based diagnostic information
 
-For a **quick start** we recommend that you visit [our guide](https://github.com/ponikrf/VRackDB/wiki/Guide) or check [how it works](https://github.com/ponikrf/VRackDB/wiki/How-It-Works)
+For a **quick start** we recommend that you visit [our guide](https://github.com/ponikrf/VRackDB/wiki/EN%E2%80%90DOC%E2%80%90V3.0) 
 
-[RUSSIAN VERSION](/docs/RU-README.md)
+[Русская версия](https://github.com/ponikrf/VRackDB/wiki/RU%E2%80%90README-V3.0)
 
-A local version of the [guide is available](/docs/EN-Guide.md)
-
-What problem does this base solve?
-===============================
-
-It's not always obvious how difficult working with charts really is until you try it yourself. If you get new data all the time, you can try to solve the storage problem with an array. In this case, a lot of problems arise - non-linearity of data, data management, aggregation, obtaining data from an arbitrary segment of the graph. 
-
-More details on problem solving can be found in [introduction](https://github.com/ponikrf/VRackDB/wiki/Introduction)
+A local version of the [guide is available](/docs/EN-Doc.md)
 
 Motivation
 ===========
@@ -44,194 +42,59 @@ Additional information
 
 Even if I haven't made changes to the project for a long time, it doesn't mean that the project is dead. You can write to ponik_rf@mail.ru, I will try to respond as soon as possible.
 
-update 2.3.0
+
+### Upgrade to version 3
+
+If you are already using version 2, it is recommended that you check out [official guide](https://github.com/ponikrf/VRackDB/wiki/EN%E2%80%90DOC%E2%80%90V3.0) to upgrade to the new version.
+
+
+Last changes
+============
+
+update 3.0.0
 ------------
 
- * Added method `Collector.writeCount(metricId)` which returns the number of records in the metric
- * Added method `Collector.start(metricId)` which returns the expected start of the metric graph
- * Added method `Collector.end(metricId)` which returns the expected end of the metric graph
- * Now the size for each metric is calculated in advance, and `Collector` returns a ready-made value. This greatly speeds up the calculation of the occupied space of metrics in the scheme
- * Added method `Database.readAll(metricId, precision, func)` Which returns data from the beginning of the metric record to the last record
+### SchemeDB
 
+ - Added SchemeDB class - Replaced the old `Database` class.
+ - Removed working with `MetricTree` (find method). Now you can use `MetricTree` without `SchemeDB`.
+ - The `scheme` method now uses named parameters 
+ - It is now possible to define the `CInterval` parameter in the `scheme` method, which controls the minimal time unit (note: seconds, milliseconds, microseconds).
 
+### SingleDB
 
-Installation
----------
+ - Added SingleDB class - The simplest class for working with metrics. Each metric in this class can have different settings from other metrics. This class is the parent of the `SchemeDB` class
 
-```
-# npm install -s vrack-db
-```
+### Database 
 
-Uses
--------------
+ - The class has been removed, now SchemeDB instead
 
-[Simrrdb](https://gitlab.com/ponik_rf/simrrdb) - Example project that uses this database to temporarily store metrics and display them in Grafana
+### Layer 
 
-It is recommended that you read the [official guide](https://github.com/ponikrf/VRackDB/wiki/Guide ) or check [how it works](https://github.com/ponikrf/VRackDB/wiki/How-It-Works)
+ - General refactoring - converted to TypeScript style
+ - Changed the initialization of the class. Named parameters are now used
+ - Size method removed, and replaced with `Layer.length`.
+ - All internal settings like `interval`, `period`, etc. are now read-only via “getters”.
 
+### Collector
 
-The following are brief examples and descriptions of the use of `Database`.
-### Schemes 
+ - General refactoring - moved to TypeScript style
+ - The init method now uses named parameters
+ - Internal documentation update
+ - `Collector` methods now use the `Interval` that was specified when the metric was created
+ - Optimization of metrics settings storage
+ - All class properties are now defined as protected
+ - Added readFake method to retrieve irrelevant metrics
+ - Added info method that returns additional information about the metric (size, first write, number of attempts to write to the metric).
 
-Database supports different schemas for storing metrics. The format of schemas is similar to the Carbon + Whisper format.
+### Interval
 
-Adding a new schema:
+ - Updated internal documentation, comments now better answer the question about what methods do.
+ - Added new concept of MTU - minimum time unit. MTU is a unit of time represented as an integer. For example, for the Interval class MTU = 1 second. For IntervalMs MTU = 1 millisecond, etc.
+ - Internal interfaces are now exported for use inside other extensible classes like IntervalMs
+ - Added getFactor() method which returns a time multiplier to get the MTU from the JS standard time. (Normally, JS uses milliseconds as the time. Factor to get MTU in Interval will be 0.001)
+ - Added 2 more intervals to the standard interval set - ms and us - millisecond and microsecond respectively
+ - Now if the result of interval conversion returns a fractional number - it will be rounded up.
+ - Fixed a problem with the partOfPeriod method. Previously it could perform only one type of operation in one expression, e.g. calculate `1m+10m+1h` but if you needed to use both `+` and `-` it would cause an error.
+ - Added IntervalMs & IntervalUs classes to calculate Ms and Us as MTUs
 
-
-```ts
-import { Database } from "vrack-db";
-const DB = new Database()
-
-DB.scheme('test', 'test.name', '5s:10m, 1m:2h')
-```
-
-
-In the example above, we created a `test` schema, for which we specified the `test.name` pattern and specified the accuracy and duration for storing metrics.
-
-Let's break it down in order:
-
-- `test` - The name of the scheme
- - `test.name` - All metrics with the name `test.name.*` will fall into the group test.
- - `5s:10m, 1m:2h` - Specifies the precision and size of the metric storage period. In this case, storage with a precision of 5 seconds for a total period of 10 minutes, with a precision of 1 minute storage period of 2 hours.
-
-### Writing the metric to the database
-
-```ts
-DB.write("test.name.metricid", 1234.5678)
-```
-
- - `test.name` - The name of the metric is specified in the same way as patterns, in small letters, the acts are separated by dots.
- - `1234.5678` - **The value for the metric is of type float(32bit)**.
-
-**It is not recommended to make long names for metrics. Take into account that the name for a metric also takes up memory space.** For example, if the name of a metric takes 10 characters (10 bytes), then 1024 metrics will take 10kB of memory (actually more).
-
-Indication of time:
-
-```ts
-DB.write("test.name.metricid", 1234.5678, 123456789)
-```
-
-By default, the value `0` is passed as the time parameter. If the value is `0`, the current time will be set to `now`. 
-For this reason, if you use abstract values to specify the time, they must start with a value > 0.
-
-Specifying a value modifier:
-
-```ts
-DB.write("test.name.metricid", 1234.5678, 0, 'sum')
-```
-
-### Reading Records
-
-```ts
-const res = DB.read("test.name.metricid",'now-1h:now', '5s')
-console.table(res.rows)
-```
-
-- `test.name` - Name of the recorded metric
-- `now-1h:now` - Period for receiving the metric
-- `5s` - Accuracy with which to generate the response
-
-There is **data aggregation capability** available for read functions - see [official guide](https://github.com/ponikrf/VRackDB/wiki/Guide )
-
-
-----
-
-**Please note that all calculations in the database are in seconds**
-
-----
-
-
-You can also use `readCustomRange` to get data for an arbitrary period.
-
-```ts
-const dbRes = DB.readCustomRange('test.name.metricid', start, end, `5s`)
-```
-
-You can use `read` and `readCustomRange` of the `Database` class to retrieve a specific number of metrics regardless of the period.
-
-For example:
-
-```ts
-// Returns a maximum of 100 metrics for this period
- const dbRes = DB.readCustomRange('target', start, end, 100)
-```
-
-An example for a general practical understanding of how a database works:
-
-```ts
-import { Database } from "vrack-db";
-
-const DB = new Database()
-
-DB.scheme('test', 'test.name', '5s:10m, 1m:2h, 15m:1d')
-
-setInterval(()=>{
-    DB.write("test.name.metricid", process.memoryUsage().heapTotal /1024 / 1024)
-}, 1000)
-
-setInterval(()=>{
-    const res = DB.read("test.name.metricid",'now-1h:now', '5s')
-    console.table(res.rows)
-}, 5000)
-```
-
-Data Tracking
--------------------
-
-Version 2.1.0 adds a small tool for data tracking. (see the guide for more details)
-
-Initialization:
-
-```ts
-const AT = new Alerting(DB)
-```
-
-The query for the data is defined using the `AlertQuery` class:
-
-```ts
-// getting interval, data interval, period, func
-const aQuery = new AlertQuery('5s', '1s', 'now-15s:now', 'avg')
-```
-
-The `BasicCondition` class is used to define the bounds:
-
-```ts
-// level, condition type, params
-const aConfig = new BasicCondition('danger',"outRange",[-5,5])
-```
-
-You need to start tracking the right metric with the right parameters:
-
-```ts
-// metric path, query, config, id, additional
-AT.watch('test.name.2',aQuery, aConfig, '', {})
-```
-
-To receive messages when a value violates a rule, you can subscribe to receive a message:
-
-```ts
-AT.addListener((alert) => { console.log(alert) })
-```
-
-If you violate a rule, you will receive a message such as:
-
-
-```ts
-{
-  id: '24cf92b9066b5',
-  value: 7.50190642674764,
-  status: 'updated',
-  count: 36,
-  timestamp: 1702377145,
-  created: 1702377145,
-  condition: {
-    level: 'danger',
-    id: '6633a39c10328',
-    type: 'outRange',
-    params: [ -5, 5 ]
-  },
-  areas: [ [ null, -5 ], [ 5, null ] ],
-  threshholds: [ -5, 5 ],
-  additional: {}
-}
-```

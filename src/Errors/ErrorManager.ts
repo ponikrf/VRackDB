@@ -36,7 +36,7 @@ class RegisteredErrorManager {
     register(code: string, short: string, description: string) {
         const reg1 = this.getRegistered(code)
         const reg2 = this.getRegistered(short)
-        if (reg1 !== null || reg2 !== null) throw this.make('EM_CODE_EXISTS', {code, short})
+        if (reg1 !== null || reg2 !== null) throw this.make(new Error, 'EM_CODE_EXISTS', {code, short})
         const nr = { name: 'VRackDB', code, short, description}
         this.registeredList.push(nr)
     }
@@ -46,10 +46,11 @@ class RegisteredErrorManager {
      * 
      * @param {string} short 
     */
-    make(short: string, additional = {}) {
+    make(err: Error, short: string, additional = {}) {
         const reg = this.getRegistered(short)
-        if (reg === null) throw this.make('EM_CODE_NOT_FOUND')
+        if (reg === null) throw this.make(new Error,'EM_CODE_NOT_FOUND')
         const ne = new CoreError(reg.name, reg.description,reg.code, reg.short)
+        ne.stack = err.stack
         ne.vAdd = Object.keys(additional)
         return Object.assign(ne, additional)
     }
@@ -61,11 +62,17 @@ class RegisteredErrorManager {
     */
     convert(error: any){
         if (error.vError) return error
-        const ne = this.make('EM_ERROR_CONVERT')
+        const ne = this.make(new Error,'EM_ERROR_CONVERT')
         ne.import(error)
         return ne
     }
 
+    /**
+     * Test error message
+     * 
+     * @param func function for test
+     * @param result Expected result short code
+    */
     test(func: () => boolean, result: string){
         try {
             func()
@@ -92,7 +99,9 @@ class RegisteredErrorManager {
 }
 
 const ErrorManager = new RegisteredErrorManager()
+
 ErrorManager.register('NcZIb9QvQRcq', 'EM_CODE_EXISTS', 'This code already exists')
 ErrorManager.register('uLYv4mE1Yo50', 'EM_CODE_NOT_FOUND', 'No such error found')
 ErrorManager.register('RIl3BUrxWOzP', 'EM_ERROR_CONVERT', 'Converted error')
+
 export default ErrorManager

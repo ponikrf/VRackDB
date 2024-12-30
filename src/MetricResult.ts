@@ -26,7 +26,7 @@ export default class MetricResult {
 
     static isAggregateFunc(func: string, useExcept = false){
         if (EAggregateFunctions[func as keyof typeof EAggregateFunctions] !== undefined) return true
-        if (useExcept) throw ErrorManager.make('VDB_METRIC_AGGREGATE_TYPE', { func })
+        if (useExcept) throw ErrorManager.make(new Error, 'VDB_METRIC_AGGREGATE_TYPE', { func })
         return false
     }
 
@@ -60,7 +60,7 @@ export default class MetricResult {
             case 'sum':
                 return MetricResult.#sum(data)
             default:
-                throw ErrorManager.make('VDB_METRIC_AGGREGATE_TYPE', { func })
+                throw ErrorManager.make(new Error, 'VDB_METRIC_AGGREGATE_TYPE', { func })
         }
     }
 
