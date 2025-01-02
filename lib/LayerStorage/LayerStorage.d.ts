@@ -14,6 +14,12 @@ export declare enum StorageTypes {
 }
 export default class LayerStorage {
     /**
+     * Checks if a value is a storage type
+     *
+     * @param val The value being tested
+    */
+    static isStorageType(val: any): boolean;
+    /**
      * Allows you to get the class of the storage itself using StorageTypes
      *
      * @param {StorageTypes | null} type Storage type

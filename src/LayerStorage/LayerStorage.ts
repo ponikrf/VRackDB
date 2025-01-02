@@ -34,6 +34,17 @@ export enum StorageTypes {
 ErrorManager.register('fr7ur4knKy4a', 'VDB_LAYER_STORAGE_TYPE', 'Incorrect storage type, select a supported storage type')
 
 export default class LayerStorage {
+
+    /**
+     * Checks if a value is a storage type
+     * 
+     * @param val The value being tested
+    */
+    static isStorageType(val: any) {
+        if (val in StorageTypes) return true
+        return false
+    }
+
     /**
      * Allows you to get the class of the storage itself using StorageTypes
      * 
