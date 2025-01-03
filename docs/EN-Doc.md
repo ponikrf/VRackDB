@@ -323,6 +323,14 @@ Example answer:
 }
 ```
 
+Since version 3.0.1 Added the ability to specify `start` and `end` in the relative period query - variables that will be replaced by the beginning and end of the metric respectively. 
+
+```ts
+SDB.read('test.metric.1', 'start:end', '15m')
+```
+
+Now there is no need to use the `readAll` method, but it has been left in for backward compatibility.
+
 If the metric does not exist, the query will return all values equal to `null` and the flag `relevant: false`.
 
 You can use the query method with an arbitrary period time.
@@ -330,7 +338,7 @@ You can use the query method with an arbitrary period time.
 ```ts
 const { SingleDB, Interval } = require('vrack-db')
 // ...
-// Interval.now() Возвращает время в секундах
+// Interval.now() Return time in second
 const start = Interval.now() - 1000 // начало = сейчас - 1000 секунд
 const end = Interval.now()
 SDB.readCustomRange("test.metric.1", start, end, '15m', 'avg')

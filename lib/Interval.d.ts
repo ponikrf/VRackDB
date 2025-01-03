@@ -76,7 +76,9 @@ export default class Interval {
      * @param {string} period Period formatted like a 'now-1d:now-1h'
      * @returns {IPeriod} { start: number, end: number }
     */
-    static period(period: string): IPeriod;
+    static period(period: string, pieces?: {
+        [key: string]: number;
+    }): IPeriod;
     /**
      * Allows you to calculate in simple form the part of the period e.g:
      *
@@ -93,7 +95,9 @@ export default class Interval {
      *
      * @param {string} str Calculation string
     */
-    static partOfPeriod(str: string): number;
+    static partOfPeriod(str: string, pieces?: {
+        [key: string]: number;
+    }): number;
     /**
      * Parses the time string at specified intervals
      *
@@ -161,7 +165,9 @@ export default class Interval {
      * @todo to process the numerical time values
      * @param {string} str String of interval
     */
-    protected static prepareInterval(str: string): number;
+    protected static prepareInterval(str: string, pieces?: {
+        [key: string]: number;
+    }): number;
     /**
      * Returns an object of type IRetention from a string of type '10s:1m'
      *

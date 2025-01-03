@@ -197,6 +197,6 @@ setInterval(()=>{
 },1)
 
 setInterval(()=>{
-    const res = CSingleDB.readAll("test.metric.1", 300)
+    const res = CSingleDB.read("test.metric.1",'start:end', 30)
     console.table(res.rows)
 }, 1000)

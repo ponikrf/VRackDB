@@ -1,6 +1,16 @@
 Changes
 =======
 
+update 3.0.1
+
+### Interval 
+ - Fixed a bug related to relative periods in classes other than `Interval`.
+ - Now in `Interval.period` it is possible to specify as a second parameter the time chunks that will be replaced in the period template
+
+### SingleDB
+ - Now in `SingleDB.read` method you can specify `start` and `end` as relative period. That is, there is no longer a need for the `readAll` method. You can simply specify `read('test.metric', 'start:end', 300)` instead of `readAll('test.metric', 300)`.
+
+
 update 3.0.0
 ------------
 

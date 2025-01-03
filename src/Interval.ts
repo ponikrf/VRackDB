@@ -132,14 +132,14 @@ export default class Interval {
      * @param {string} period Period formatted like a 'now-1d:now-1h'
      * @returns {IPeriod} { start: number, end: number }
     */
-    static period(period: string): IPeriod {
+    static period(period: string, pieces: {[key:string]: number } = {} ): IPeriod {
         period = period.replace(/ /g, '')
         if (period.indexOf(':') === -1) throw ErrorManager.make(new Error, 'VDB_INTREVAL_PERIOD', { period })
         const parts = period.split(':')
         if (parts.length !== 2) throw ErrorManager.make(new Error, 'VDB_INTREVAL_PERIOD', { period })
         return {
-            start: this.partOfPeriod(parts[0]),
-            end: this.partOfPeriod(parts[1])
+            start: this.partOfPeriod(parts[0], pieces),
+            end: this.partOfPeriod(parts[1], pieces)
         }
     }
 
@@ -159,7 +159,7 @@ export default class Interval {
      * 
      * @param {string} str Calculation string
     */
-    static partOfPeriod(str: string) {
+    static partOfPeriod(str: string,  pieces: {[key:string]: number } = {} ) {
         str = str.replace(/ /g, '')
         const tokens = str.split(/([-+])/);
         let result = 0
@@ -167,7 +167,7 @@ export default class Interval {
         for (const token of tokens){
             if (token === '-') { sign = -1; continue } 
             else if (token === '+') { sign = 1; continue }
-            result += this.prepareInterval(token) * sign
+            result += this.prepareInterval(token, pieces) * sign
         }
         return result
     }
@@ -271,8 +271,9 @@ export default class Interval {
      * @todo to process the numerical time values
      * @param {string} str String of interval
     */
-    protected static prepareInterval(str: string): number {
-        if (str === 'now') return this.now()
+    protected static prepareInterval(str: string, pieces: {[key:string]: number } = {}): number {
+        if (str === 'now') pieces.now = this.now()
+        if (pieces[str] !== undefined) return pieces[str]
         return this.parseInterval(str)
     }
 

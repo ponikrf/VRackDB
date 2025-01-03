@@ -115,16 +115,21 @@ export default class SingleDB {
      * @param {string} func Data aggregation function @see MetricResult.aggregate
     */
     read(name: string, period: string, precision: string | number, func = 'last'): IMetricReadResult {
-        // Prepare readfake data
-        const p = Interval.period(period)
-        if (!this.Collector.has(name))
+        if (!this.Collector.has(name)){
+            // Prepare readfake data
+            const p = Interval.period(period, {start: 1, end: 2})
             return this.Collector.readFake(p.start, p.end, this.parsePrecission(
                 p.start, p.end, precision, this.defaultMetric.CInterval
             ))
+        }
 
         // Prepare real data
         const CInterval = this.Collector.interval(name)
-        const ni = CInterval.period(period)
+        
+        const ni = CInterval.period(period, {
+            start: this.Collector.start(name),
+            end: this.Collector.end(name)
+        })
         return this.readCustomRange(name, ni.start, ni.end, precision, func)
     }
 
