@@ -272,7 +272,7 @@ export default class Interval {
      * @param {string} str String of interval
     */
     protected static prepareInterval(str: string): number {
-        if (str === 'now') return Interval.now()
+        if (str === 'now') return this.now()
         return this.parseInterval(str)
     }
 
