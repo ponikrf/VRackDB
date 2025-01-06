@@ -20,6 +20,6 @@ export default class Typing {
      * @param name check name string
     */
     static isName(name: string): boolean{
-        return /^[a-zA-Z0-9._*]+$/.test(name)
+        return /^[a-zA-Z0-9._*-:]+$/.test(name)
     }
 }
