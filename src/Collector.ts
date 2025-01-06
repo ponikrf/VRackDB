@@ -264,10 +264,10 @@ export default class Collector {
     */
     write(name: string, value: number, time = 0, func = 'last') {
         this.has(name, true)
+        if (time === 0) time = this.interval(name).now()
         if (this.additional[name].firstTime === 0 || this.additional[name].firstTime > time) {
             this.additional[name].firstTime = time
         }
-        if (time === 0) time = this.interval(name).now()
         for (const l of this.mectrics[name]) l.layer.write(time, value, func)
         this.additional[name].writeCount++
     }
