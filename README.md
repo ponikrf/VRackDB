@@ -51,7 +51,15 @@ If you are already using version 2, it is recommended that you check out [offici
 Last changes
 ============
 
+
+update 3.0.2
+------------
+- Fixed error finding the real start of the layer
+
+### Collector 
+
 update 3.0.1
+------------
 
 ### Interval 
  - Fixed a bug related to relative periods in classes other than `Interval`.
